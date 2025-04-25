@@ -48,13 +48,15 @@ export default function ParticipantView() {
 
   // Check if participant has already contributed
   const { data: checkResult } = useQuery({
-    queryKey: [`/api/sessions/${sessionId}/participants/check/${encodeURIComponent(participantName)}`],
-    onSuccess: (data) => {
-      if (data.exists) {
-        setContributed(true)
-      }
-    }
+    queryKey: [`/api/sessions/${sessionId}/participants/check/${encodeURIComponent(participantName)}`]
   });
+  
+  // Handle participant check result
+  useEffect(() => {
+    if (checkResult?.exists) {
+      setContributed(true);
+    }
+  }, [checkResult]);
 
   const form = useForm<ContributionFormData>({
     resolver: zodResolver(contributionSchema),
@@ -190,7 +192,7 @@ export default function ParticipantView() {
                 </div>
               )}
               
-              <Alert variant="warning" className="mb-4">
+              <Alert className="mb-4">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
                   Once submitted, you cannot change your contribution amount. Contact the organizer if needed.

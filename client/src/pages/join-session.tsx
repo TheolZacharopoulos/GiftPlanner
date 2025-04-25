@@ -44,7 +44,7 @@ export default function JoinSession() {
 
   // Check if session exists
   const { data: sessionData, isLoading, isError } = useQuery({
-    queryKey: sessionIdFromUrl ? [`/api/sessions/${sessionIdFromUrl}`] : null,
+    queryKey: [`/api/sessions/${sessionIdFromUrl || 'unknown'}`],
     enabled: !!sessionIdFromUrl
   });
 
