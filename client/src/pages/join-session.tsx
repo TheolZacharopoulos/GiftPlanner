@@ -66,7 +66,15 @@ export default function JoinSession() {
         const response = await apiRequest('POST', `/api/sessions/${data.sessionId}/validate-organizer`, {
           organizerSecret: data.organizerSecret
         });
-        await response.json();
+        const result = await response.json();
+        
+        // Store the secret in session storage for future use
+        if (response.ok) {
+          sessionStorage.setItem(`organizer-secret-${data.sessionId}`, data.organizerSecret || '');
+        } else {
+          throw new Error(result.error || "Invalid organizer secret");
+        }
+        
         return data;
       } 
       // If participant, check if already exists

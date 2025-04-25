@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { apiRequest } from '@/lib/queryClient'
 import { useToast } from '@/hooks/use-toast'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, calculateSuggestedContribution } from '@/lib/utils'
 import { SessionWithParticipants, ContributionFormData } from '@/lib/types'
 
 import {
@@ -161,6 +161,34 @@ export default function ParticipantView() {
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-4">
                 How much would you like to contribute to this gift?
               </p>
+              
+              {session && (
+                <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg mb-4">
+                  <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2">Suggested Contribution Range</h4>
+                  {(() => {
+                    const { min, recommended, max } = calculateSuggestedContribution(
+                      session.giftPrice,
+                      session.expectedParticipants
+                    );
+                    return (
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Minimum</p>
+                          <p className="font-medium text-gray-900 dark:text-white">{formatCurrency(min)}</p>
+                        </div>
+                        <div className="border-x border-blue-200 dark:border-blue-700">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Recommended</p>
+                          <p className="font-medium text-blue-700 dark:text-blue-300">{formatCurrency(recommended)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Maximum</p>
+                          <p className="font-medium text-gray-900 dark:text-white">{formatCurrency(max)}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
               
               <Alert variant="warning" className="mb-4">
                 <AlertTriangle className="h-4 w-4" />

@@ -37,3 +37,23 @@ export function shareViaEmail(joinLink: string, giftName: string): void {
   const body = `Join our gift session: ${joinLink}`;
   window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
 }
+
+export function calculateSuggestedContribution(
+  giftPrice: number | string, 
+  expectedParticipants: number | string
+): { min: number; recommended: number; max: number } {
+  const price = typeof giftPrice === 'string' ? parseFloat(giftPrice) : giftPrice;
+  const participants = typeof expectedParticipants === 'string' ? parseInt(expectedParticipants.toString()) : expectedParticipants;
+  
+  if (participants <= 0) {
+    return { min: 0, recommended: price, max: price * 1.2 };
+  }
+  
+  const averageContribution = price / participants;
+  
+  return {
+    min: Math.max(averageContribution * 0.8, 0.01),
+    recommended: averageContribution,
+    max: averageContribution * 1.2
+  };
+}
