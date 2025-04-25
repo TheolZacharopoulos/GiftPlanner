@@ -1,0 +1,50 @@
+Gift organizer 
+
+An organizer is responsible to select a gift for a friend, with a given price and add participants to the group.
+The group joins and agrees on the gift:
+* If agree, 
+    * participants add an amount they want to pay for the gift secretly. If the amount is reached the the “gift session” is completed. 
+    * Is there is excess about then those who selected the most get the excess amount back.
+    * Only the  organizer is able to see the amounts so he is able to be paid and buy the gift.
+* If not agree,
+    * Organiser should select another gift with the appropriate amount
+
+
+Web app, using react native so it can b a mobile app also.
+
+
+Domain models:
+* Session
+    * ID
+    * Gift name
+    * Git price
+* User: Organiser or Participant
+    * Name
+    * Session
+    * Contributed Amount
+
+Super simple frontend:
+* Initial screen: Explaining how it works. Two buttons either “join a gift session” or to “create” a new one (Initial screen)
+* When creating a new one - No Sign in / sign up - maybe some captcha for throttling (?) 
+* Organiser adds his/her name and adds the gift link / or picture and the amount in euros, a range of amount (considering the expected participants - that should be an input), the amount he wishes to contribute + a secret for the session so the organizer can view back the session with this role. 
+* Then clicks next, and a url is shown with the session id and join: like this gift-org.com/session1234/join  a button to copy this url and be able to share with the participants via messenger (+ a share button that allows to share via messenger, email, etc).
+* If organizer leaves and needs to visit the page again, should go to gift-org.com/session1234 where he/shes puts his name and the secret and access the session (LoginScreen), when visiting the organizer is able to change the gift the amount and his contribution amount
+* The active session as an organizer you see the total amount collected (sum of the amounts each participant added)  BUT NOT how much by whom YET - ONLY AFTER the total amount is collected he is able to see the individual amount. Also he is able to remove participant with their respective amount (ActiveSessionScreen).
+* On the other hand, when the participant receives the shared link and visits it also sees the LoginScreen where puts in a name (secret only if he selects that he is the organizer)
+* As soon as the participants connects to the active session he/she should be able to just see the gift, the price, the amount asked range and an input field where he / she can add the amount wishes to pay and press save.
+* The participant can not go the session again and see or even look at the selected amount, if he wishes to change it he should contact the organizer (outside of this app) and ask him to remove this participant 
+* As soon as all the participants have added their amounts the organizer can log in and see that successfully collected the amount and finally be able to view the amount of each individual and received it. Then he should go on and close the session where the session does not exist any more.
+
+Backend:
+* A simple node.js backend with REST API 
+* with respective endpoints to perform the actions needed
+    * Create a new session (as organizer)
+    * Edit a session - by changing the gift, or the price or the contributed amount (as organizer)
+    * Delete a session (as organizer)
+    * Join a session as a participant 
+    * Add contributed amount as a participant 
+        * Each time a participant adds an amount the system should check if the amount is reached and marked the session as complected (redistribute the amounts if exceeded)
+* Storing the data in a json file.
+
+
+Backend and frontend can live on the same server for the web (in the future when this is going to be a mobile app then it makes sense to split it)
