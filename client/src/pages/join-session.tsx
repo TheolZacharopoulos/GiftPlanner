@@ -109,15 +109,29 @@ export default function JoinSession() {
   });
 
   async function onSubmit(data: JoinSessionFormData) {
-    if (data.isOrganizer && data.organizerSecret) {
+    if (data.isOrganizer) {
       try {
+        // Ensure the secret exists
+        if (!data.organizerSecret) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Organizer secret is required"
+          });
+          return;
+        }
+        
         // Directly validate and handle organizer login
+        console.log("Submitting organizer secret:", data.organizerSecret);
+        
         const response = await fetch(`/api/sessions/${data.sessionId}/validate-organizer`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ organizerSecret: data.organizerSecret }),
+          body: JSON.stringify({ 
+            organizerSecret: data.organizerSecret 
+          }),
         });
         
         const result = await response.json();
@@ -135,6 +149,7 @@ export default function JoinSession() {
         sessionStorage.setItem(`organizer-secret-${data.sessionId}`, data.organizerSecret);
         setLocation(`/session/${data.sessionId}/organizer`);
       } catch (error) {
+        console.error("Error during organizer validation:", error);
         toast({
           variant: "destructive",
           title: "Error",
@@ -211,8 +226,9 @@ export default function JoinSession() {
                     <FormItem>
                       <FormLabel>Session Secret</FormLabel>
                       <FormControl>
-                        <Input 
+                        <input 
                           type="password" 
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                           value={field.value || ''}
                           onChange={(e) => field.onChange(e.target.value)}
                           onBlur={field.onBlur}

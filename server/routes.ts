@@ -51,11 +51,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { sessionId } = req.params;
       const { organizerSecret } = req.body;
       
+      console.log('Validating organizer for session:', sessionId);
+      console.log('Secret received:', organizerSecret ? 'Secret provided' : 'No secret provided');
+      
       if (!organizerSecret) {
         return res.status(400).json({ error: 'Organizer secret is required' });
       }
       
       const isValid = await storage.validateOrganizer(sessionId, organizerSecret);
+      
+      console.log('Secret validation result:', isValid ? 'Valid' : 'Invalid');
       
       if (!isValid) {
         return res.status(403).json({ error: 'Invalid organizer secret' });
