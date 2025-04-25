@@ -43,7 +43,7 @@ const initialData: JsonData = {
 };
 
 // File path for the JSON data
-const dataFilePath = path.join(process.cwd(), 'data.json');
+const dataFilePath = path.join(process.cwd(), 'db', 'data.json');
 
 export class JsonStorage {
   private data: JsonData = initialData;
