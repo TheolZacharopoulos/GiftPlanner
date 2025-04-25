@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useLocation, useRoute } from 'wouter'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -53,7 +53,7 @@ export default function ParticipantView() {
   
   // Handle participant check result
   useEffect(() => {
-    if (checkResult?.exists) {
+    if (checkResult && 'exists' in checkResult && checkResult.exists) {
       setContributed(true);
     }
   }, [checkResult]);

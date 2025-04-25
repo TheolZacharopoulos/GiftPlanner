@@ -107,8 +107,43 @@ export default function JoinSession() {
     }
   });
 
-  function onSubmit(data: JoinSessionFormData) {
-    mutate(data);
+  async function onSubmit(data: JoinSessionFormData) {
+    if (data.isOrganizer && data.organizerSecret) {
+      try {
+        // Directly validate and handle organizer login
+        const response = await fetch(`/api/sessions/${data.sessionId}/validate-organizer`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ organizerSecret: data.organizerSecret }),
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: result.error || "Invalid organizer secret"
+          });
+          return;
+        }
+        
+        // Store the secret in session storage and redirect
+        sessionStorage.setItem(`organizer-secret-${data.sessionId}`, data.organizerSecret);
+        setLocation(`/session/${data.sessionId}/organizer`);
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to validate organizer"
+        });
+      }
+    } else {
+      // For participants, use the existing mutation
+      mutate(data);
+    }
   }
 
   return (
