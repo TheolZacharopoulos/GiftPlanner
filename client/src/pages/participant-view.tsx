@@ -53,7 +53,11 @@ export default function ParticipantView() {
   
   // Handle participant check result
   useEffect(() => {
-    if (checkResult && 'exists' in checkResult && checkResult.exists) {
+    if (checkResult && 
+        typeof checkResult === 'object' && 
+        checkResult !== null && 
+        Object.prototype.hasOwnProperty.call(checkResult, 'exists') && 
+        (checkResult as {exists: boolean}).exists) {
       setContributed(true);
     }
   }, [checkResult]);

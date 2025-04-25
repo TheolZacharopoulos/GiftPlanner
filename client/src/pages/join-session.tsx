@@ -37,7 +37,8 @@ export default function JoinSession() {
       name: '',
       isOrganizer: false,
       organizerSecret: ''
-    }
+    },
+    mode: 'onChange'
   })
 
   const isOrganizer = form.watch('isOrganizer')
@@ -212,7 +213,11 @@ export default function JoinSession() {
                       <FormControl>
                         <Input 
                           type="password" 
-                          {...field} 
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                           placeholder="Enter your secret code" 
                         />
                       </FormControl>
