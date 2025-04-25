@@ -10,12 +10,12 @@ import { nanoid } from "nanoid";
 
 // Helper functions to handle type conversions
 function ensureString(value: string | number | null | undefined): string {
-  if (value === null || value === undefined) return "";
+  if (value === null || value === undefined || value === "") return "";
   return String(value);
 }
 
 function ensureStringOrNull(value: string | number | null | undefined): string | null {
-  if (value === null || value === undefined) return null;
+  if (value === null || value === undefined || value === "") return null;
   return String(value);
 }
 
@@ -80,7 +80,7 @@ export class JsonStorage {
       id: this.data.sessions.length + 1,
       sessionId,
       giftName: sessionData.giftName,
-      giftLink: ensureString(sessionData.giftLink),
+      giftLink: ensureStringOrNull(sessionData.giftLink),
       giftPrice: ensureString(sessionData.giftPrice),
       organizerName: sessionData.organizerName,
       organizerSecret: sessionData.organizerSecret,
@@ -103,8 +103,7 @@ export class JsonStorage {
       contribution: ensureString(sessionData.organizerContribution),
       isOrganizer: true,
       refundAmount: ensureString(0),
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: new Date()
     };
     
     // Add participant to data
@@ -205,8 +204,7 @@ export class JsonStorage {
       contribution: ensureString(participantData.contribution),
       isOrganizer: ensureBoolean(participantData.isOrganizer),
       refundAmount: ensureString(participantData.refundAmount),
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: new Date()
     };
     
     // Add participant to data
