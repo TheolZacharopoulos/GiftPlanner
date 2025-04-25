@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useLocation, useRoute } from 'wouter'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -29,7 +29,10 @@ export default function JoinSession() {
   const { toast } = useToast()
   const queryParams = new URLSearchParams(window.location.search)
   const sessionIdFromUrl = queryParams.get('sessionId')
-
+  const [isOrganizer, setIsOrganizer] = useState(false)
+  const [organizerSecret, setOrganizerSecret] = useState('')
+  
+  // Create a separate form for the non-organizer flow
   const form = useForm<JoinSessionFormData>({
     resolver: zodResolver(joinSessionSchema),
     defaultValues: {
@@ -37,11 +40,8 @@ export default function JoinSession() {
       name: '',
       isOrganizer: false,
       organizerSecret: ''
-    },
-    mode: 'onChange'
+    }
   })
-
-  const isOrganizer = form.watch('isOrganizer')
 
   // Check if session exists
   const { data: sessionData, isLoading, isError } = useQuery({
@@ -60,44 +60,22 @@ export default function JoinSession() {
     }
   }, [isError, toast])
 
+  // Participant mutation
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: JoinSessionFormData) => {
-      // If organizer, just validate the secret
-      if (data.isOrganizer) {
-        const response = await apiRequest('POST', `/api/sessions/${data.sessionId}/validate-organizer`, {
-          organizerSecret: data.organizerSecret
-        });
-        const result = await response.json();
-        
-        // Store the secret in session storage for future use
-        if (response.ok) {
-          sessionStorage.setItem(`organizer-secret-${data.sessionId}`, data.organizerSecret || '');
-        } else {
-          throw new Error(result.error || "Invalid organizer secret");
-        }
-        
-        return data;
-      } 
-      // If participant, check if already exists
-      else {
-        const checkResponse = await fetch(`/api/sessions/${data.sessionId}/participants/check/${encodeURIComponent(data.name)}`);
-        const checkResult = await checkResponse.json();
-        
-        if (checkResult.exists) {
-          throw new Error("A participant with this name already exists in this session");
-        }
-        
-        return data;
+      // Participant flow - check if already exists
+      const checkResponse = await fetch(`/api/sessions/${data.sessionId}/participants/check/${encodeURIComponent(data.name)}`);
+      const checkResult = await checkResponse.json();
+      
+      if (checkResult.exists) {
+        throw new Error("A participant with this name already exists in this session");
       }
+      
+      return data;
     },
     onSuccess: (data) => {
-      if (data.isOrganizer) {
-        // Redirect to organizer view
-        setLocation(`/session/${data.sessionId}/organizer`);
-      } else {
-        // Redirect to participant view
-        setLocation(`/session/${data.sessionId}/participant/${encodeURIComponent(data.name)}`);
-      }
+      // Redirect to participant view
+      setLocation(`/session/${data.sessionId}/participant/${encodeURIComponent(data.name)}`);
     },
     onError: (error) => {
       toast({
@@ -108,57 +86,78 @@ export default function JoinSession() {
     }
   });
 
-  async function onSubmit(data: JoinSessionFormData) {
-    if (data.isOrganizer) {
+  // Handle radio button change
+  const handleOrganizerChange = (value: string) => {
+    setIsOrganizer(value === 'true')
+    form.setValue('isOrganizer', value === 'true')
+  }
+
+  // Handle form submission
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    
+    const sessionId = form.getValues('sessionId')
+    
+    if (!sessionId) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Session ID is required"
+      })
+      return
+    }
+    
+    if (isOrganizer) {
       try {
         // Ensure the secret exists
-        if (!data.organizerSecret) {
+        if (!organizerSecret) {
           toast({
             variant: "destructive",
             title: "Error",
             description: "Organizer secret is required"
-          });
-          return;
+          })
+          return
         }
         
         // Directly validate and handle organizer login
-        console.log("Submitting organizer secret:", data.organizerSecret);
-        
-        const response = await fetch(`/api/sessions/${data.sessionId}/validate-organizer`, {
+        const response = await fetch(`/api/sessions/${sessionId}/validate-organizer`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ 
-            organizerSecret: data.organizerSecret 
+            organizerSecret: organizerSecret
           }),
-        });
+        })
         
-        const result = await response.json();
+        const result = await response.json()
         
         if (!response.ok) {
           toast({
             variant: "destructive",
             title: "Error",
             description: result.error || "Invalid organizer secret"
-          });
-          return;
+          })
+          return
         }
         
         // Store the secret in session storage and redirect
-        sessionStorage.setItem(`organizer-secret-${data.sessionId}`, data.organizerSecret);
-        setLocation(`/session/${data.sessionId}/organizer`);
+        sessionStorage.setItem(`organizer-secret-${sessionId}`, organizerSecret)
+        setLocation(`/session/${sessionId}/organizer`)
       } catch (error) {
-        console.error("Error during organizer validation:", error);
+        console.error("Error during organizer validation:", error)
         toast({
           variant: "destructive",
           title: "Error",
           description: error instanceof Error ? error.message : "Failed to validate organizer"
-        });
+        })
       }
     } else {
-      // For participants, use the existing mutation
-      mutate(data);
+      // For participants, validate and use the mutation
+      const result = form.trigger()
+      if (result) {
+        mutate(form.getValues())
+      }
     }
   }
 
@@ -172,7 +171,7 @@ export default function JoinSession() {
       <Card>
         <CardContent className="pt-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={onSubmit} className="space-y-6">
               <FormField
                 control={form.control}
                 name="sessionId"
@@ -191,56 +190,36 @@ export default function JoinSession() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="isOrganizer"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>Are you the organizer?</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={(value) => field.onChange(value === 'true')}
-                        defaultValue={field.value ? 'true' : 'false'}
-                        className="flex gap-4"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="false" id="participant" />
-                          <Label htmlFor="participant">No, I'm a participant</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="true" id="organizer" />
-                          <Label htmlFor="organizer">Yes, I'm the organizer</Label>
-                        </div>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-3">
+                <FormLabel htmlFor="user-type">Are you the organizer?</FormLabel>
+                <RadioGroup
+                  onValueChange={handleOrganizerChange}
+                  defaultValue="false"
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="false" id="participant" />
+                    <Label htmlFor="participant">No, I'm a participant</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="true" id="organizer" />
+                    <Label htmlFor="organizer">Yes, I'm the organizer</Label>
+                  </div>
+                </RadioGroup>
+              </div>
 
               {isOrganizer ? (
-                <FormField
-                  control={form.control}
-                  name="organizerSecret"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Session Secret</FormLabel>
-                      <FormControl>
-                        <input 
-                          type="password" 
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value)}
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          ref={field.ref}
-                          placeholder="Enter your secret code" 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-3">
+                  <FormLabel htmlFor="organizerSecret">Session Secret</FormLabel>
+                  <input 
+                    id="organizerSecret"
+                    type="password" 
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={organizerSecret}
+                    onChange={(e) => setOrganizerSecret(e.target.value)}
+                    placeholder="Enter your secret code" 
+                  />
+                </div>
               ) : (
                 <FormField
                   control={form.control}
